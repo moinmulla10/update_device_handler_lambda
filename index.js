@@ -118,7 +118,7 @@ async function updateDeviceShadowDesiredState(newTemperature) {
     console.log(response);
     console.log("Shadow updated!");
     console.log("deployment successful");
-    return 'Shadow updated successfully';
+    return 'Shadow updated successfully by Moin';
   } catch (err) {
     console.log("Error updating shadow:", err);
     return 'Some error occurred!';
