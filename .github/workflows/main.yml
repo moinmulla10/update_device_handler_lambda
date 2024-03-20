@@ -28,5 +28,5 @@ jobs:
         run: |
           pwd
           ls
-          zip deploy.zip .
+          zip -r deploy.zip .
           aws lambda update-function-code --function-name=updateDeviceState --zip-file=fileb://deploy.zip
