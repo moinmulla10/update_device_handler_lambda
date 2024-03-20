@@ -26,5 +26,5 @@ jobs:
           npm ci
       - name: deploy
         run: |
-          zip -j deploy.zip ./dist/*
+          zip deploy.zip .
           aws lambda update-function-code --function-name=updateDeviceState --zip-file=fileb://deploy.zip
