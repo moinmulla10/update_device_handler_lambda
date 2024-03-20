@@ -117,6 +117,7 @@ async function updateDeviceShadowDesiredState(newTemperature) {
     const response = await iotData.updateThingShadow(params).promise();
     console.log(response);
     console.log("Shadow updated!");
+    console.log("deployment successful");
     return 'Shadow updated successfully';
   } catch (err) {
     console.log("Error updating shadow:", err);
