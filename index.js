@@ -1,7 +1,12 @@
-const AWS = require('aws-sdk');
+const AWS = require("aws-sdk");
 const Alexa = require("ask-sdk-core");
 
-const iotData = new AWS.IotData({region: 'us-east-1', endpoint: 'a19poveleatzc-ats.iot.us-east-1.amazonaws.com'});
+const iotData = new AWS.IotData({
+  region: "us-east-1",
+  endpoint: "a19poveleatzc-ats.iot.us-east-1.amazonaws.com",
+});
+
+const dynamodb = new AWS.DynamoDB.DocumentClient();
 
 const LaunchRequestHandler = {
   canHandle(handlerInput) {
@@ -19,25 +24,177 @@ const LaunchRequestHandler = {
   },
 };
 
-const ChangeTemperatureIntentHandler = {
+const ChangeACTemperatureIntentHandler = {
   canHandle(handlerInput) {
     return (
       Alexa.getRequestType(handlerInput.requestEnvelope) === "IntentRequest" &&
       Alexa.getIntentName(handlerInput.requestEnvelope) ===
-        "changeTemperatureIntent"
+        "changeAirConditionerTemperature"
     );
   },
   async handle(handlerInput) {
-    //get slot value new temperature
-    const slotValue = Alexa.getSlotValue(handlerInput.requestEnvelope, "newTemperature");
-    const response = await updateDeviceShadowDesiredState(parseInt(slotValue));
-
-    return (
-      handlerInput.responseBuilder
-        .speak(response)
-        .reprompt()
-        .getResponse()
+    const roomNoSlotValue = Alexa.getSlotValue(
+      handlerInput.requestEnvelope,
+      "roomNo"
     );
+
+    const deviceType = "air_conditioner";
+
+    const temperatureSlotValue = Alexa.getSlotValue(
+      handlerInput.requestEnvelope,
+      "newTemperature"
+    );
+    const desiredStateChange = parseInt(temperatureSlotValue);
+
+    try {
+      const thing = await getThingFromDynamoDB(
+        parseInt(roomNoSlotValue),
+        deviceType
+      );
+      console.log("Thing", thing);
+    } catch (error) {
+      console.log("Error in getThingFromDynamoDB", error);
+      return handlerInput.responseBuilder
+        .speak("Some error occurred in finding thing in dynamoDB")
+        .reprompt()
+        .getResponse();
+    }
+
+    const response = await updateDeviceShadowDesiredState(
+      thing.thingName,
+      deviceType,
+      desiredStateChange
+    );
+
+    try {
+      await updateDynamoDBThing(thing.deviceId, desiredStateChange);
+    } catch (error) {
+      console.log("Error in updateThingInDynamoDB", error);
+      return handlerInput.responseBuilder
+        .speak("Some error occurred while updating dynamodb table")
+        .reprompt()
+        .getResponse();
+    }
+
+    return handlerInput.responseBuilder
+      .speak(response)
+      .reprompt()
+      .getResponse();
+  },
+};
+
+const TurnLightBulbOnOffIntentHandler = {
+  canHandle(handlerInput) {
+    return (
+      Alexa.getRequestType(handlerInput.requestEnvelope) === "IntentRequest" &&
+      Alexa.getIntentName(handlerInput.requestEnvelope) === "turnLightBulbOnOff"
+    );
+  },
+  async handle(handlerInput) {
+    const roomNoSlotValue = Alexa.getSlotValue(
+      handlerInput.requestEnvelope,
+      "roomNo"
+    );
+
+    const deviceType = "light_bulb";
+
+    const onOffStatus = Alexa.getSlotValue(
+      handlerInput.requestEnvelope,
+      "onOffStatus"
+    );
+    const desiredStateChange = onOffStatus;
+
+    try {
+      const thing = await getThingFromDynamoDB(
+        parseInt(roomNoSlotValue),
+        deviceType
+      );
+      console.log("Thing", thing);
+    } catch (error) {
+      console.log("Error in getThingFromDynamoDB", error);
+      return handlerInput.responseBuilder
+        .speak("Some error occurred in finding thing in dynamoDB")
+        .reprompt()
+        .getResponse();
+    }
+
+    const response = await updateDeviceShadowDesiredState(
+      thing.thingName,
+      deviceType,
+      desiredStateChange
+    );
+
+    try {
+      await updateDynamoDBThing(thing.deviceId, desiredStateChange);
+    } catch (error) {
+      console.log("Error in updateThingInDynamoDB", error);
+      return handlerInput.responseBuilder
+        .speak("Some error occurred while updating dynamodb table")
+        .reprompt()
+        .getResponse();
+    }
+
+    return handlerInput.responseBuilder
+      .speak(response)
+      .reprompt()
+      .getResponse();
+  },
+};
+
+const ChangeFanSpeedIntentHandler = {
+  canHandle(handlerInput) {
+    return (
+      Alexa.getRequestType(handlerInput.requestEnvelope) === "IntentRequest" &&
+      Alexa.getIntentName(handlerInput.requestEnvelope) === "changeFanSpeed"
+    );
+  },
+  async handle(handlerInput) {
+    const roomNoSlotValue = Alexa.getSlotValue(
+      handlerInput.requestEnvelope,
+      "roomNo"
+    );
+
+    const deviceType = "fan";
+    const fanSpeedSlotValue = Alexa.getSlotValue(
+      handlerInput.requestEnvelope,
+      "fanSpeed"
+    );
+    desiredStateChange = parseInt(fanSpeedSlotValue);
+
+    try {
+      const thing = await getThingFromDynamoDB(
+        parseInt(roomNoSlotValue),
+        deviceType
+      );
+      console.log("Thing", thing);
+    } catch (error) {
+      console.log("Error in getThingFromDynamoDB", error);
+      return handlerInput.responseBuilder
+        .speak("Some error occurred in finding thing in dynamoDB")
+        .reprompt()
+        .getResponse();
+    }
+
+    const response = await updateDeviceShadowDesiredState(
+      thing.thingName,
+      deviceType,
+      desiredStateChange
+    );
+
+    try {
+      await updateDynamoDBThing(thing.deviceId, desiredStateChange);
+    } catch (error) {
+      console.log("Error in updateThingInDynamoDB", error);
+      return handlerInput.responseBuilder
+        .speak("Some error occurred while updating dynamodb table")
+        .reprompt()
+        .getResponse();
+    }
+
+    return handlerInput.responseBuilder
+      .speak(response)
+      .reprompt()
+      .getResponse();
   },
 };
 
@@ -94,33 +251,102 @@ const ErrorHandler = {
 exports.updateDeviceStateHandler = Alexa.SkillBuilders.custom()
   .addRequestHandlers(
     LaunchRequestHandler,
-    ChangeTemperatureIntentHandler,
+    ChangeACTemperatureIntentHandler,
+    ChangeFanSpeedIntentHandler,
+    TurnLightBulbOnOffIntentHandler,
     CancelAndStopIntentHandler,
     FallbackIntentHandler
   )
   .addErrorHandlers(ErrorHandler)
   .lambda();
 
-async function updateDeviceShadowDesiredState(newTemperature) {
-  const params = {
-    thingName: "airConditioner",
-    payload: JSON.stringify({
-      state: {
-        desired: {
-          temperature: newTemperature,
-        },
-      },
-    }),
-  };
+async function updateDeviceShadowDesiredState(
+  thingName,
+  deviceType,
+  desiredStateChange
+) {
+  const params = getDeviceShadowUpdateParams(
+    thingName,
+    deviceType,
+    desiredStateChange
+  );
 
   try {
     const response = await iotData.updateThingShadow(params).promise();
     console.log(response);
     console.log("Shadow updated!");
-    console.log("deployment successful");
-    return 'Shadow updated successfully by Moin';
+    return "Shadow updated successfully";
   } catch (err) {
     console.log("Error updating shadow:", err);
-    return 'Some error occurred!';
+    return "Some error occurred!";
   }
+}
+
+function getDeviceShadowUpdateParams(
+  thingName,
+  deviceType,
+  desiredStateChange
+) {
+  if (deviceType === "air_conditioner") {
+    return {
+      thingName: thingName,
+      payload: JSON.stringify({
+        state: {
+          desired: {
+            temperature: desiredStateChange,
+          },
+        },
+      }),
+    };
+  } else if (deviceType === "fan") {
+    return {
+      thingName: thingName,
+      payload: JSON.stringify({
+        state: {
+          desired: {
+            speed: desiredStateChange,
+          },
+        },
+      }),
+    };
+  } else if (deviceType === "light") {
+    return {
+      thingName: thingName,
+      payload: JSON.stringify({
+        state: {
+          desired: {
+            status: desiredStateChange,
+          },
+        },
+      }),
+    };
+  }
+}
+
+async function getThingFromDynamoDB(roomNo, deviceType) {
+  const dynamoDBParams = {
+    TableName: "IOT_Devices",
+    KeyConditionExpression: "roomNo = :value1 AND deviceType = :value2",
+    ExpressionAttributeValues: {
+      ":value1": roomNo,
+      ":value2": deviceType,
+    },
+  };
+
+  const data = await dynamodb.query(dynamoDBParams).promise();
+  return data.Items[0];
+}
+
+async function updateDynamoDBThing(deviceId, temperature) {
+  const dynamodbUpdateParams = {
+    TableName: "IOT_Devices",
+    Key: {
+      deviceId: deviceId,
+    },
+    UpdateExpression: "SET temperature = :value",
+    ExpressionAttributeValues: {
+      ":value": temperature,
+    },
+  };
+  await dynamodb.update(dynamodbUpdateParams).promise();
 }
