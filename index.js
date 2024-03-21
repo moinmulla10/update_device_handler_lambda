@@ -326,7 +326,11 @@ function getDeviceShadowUpdateParams(
 async function getThingFromDynamoDB(roomNo, deviceType) {
   const dynamoDBParams = {
     TableName: "IOT_Devices",
-    KeyConditionExpression: "roomNo = :value1 AND deviceType = :value2",
+    KeyConditionExpression: "#roomNo = :value1 AND #deviceType = :value2",
+    ExpressionAttributeNames: {
+      '#roomNo': 'roomNo',
+      '#deviceType': 'deviceType',
+    },
     ExpressionAttributeValues: {
       ":value1": roomNo,
       ":value2": deviceType,
@@ -334,6 +338,7 @@ async function getThingFromDynamoDB(roomNo, deviceType) {
   };
 
   const data = await dynamodb.query(dynamoDBParams).promise();
+  console.log('Data Items',data.Items);
   return data.Items[0];
 }
 
