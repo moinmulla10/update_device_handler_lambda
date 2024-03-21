@@ -46,6 +46,8 @@ const ChangeACTemperatureIntentHandler = {
     );
     const desiredStateChange = parseInt(temperatureSlotValue);
 
+    console.log("desiredStateChange", desiredStateChange);
+    console.log( "roomNoSlotValue", roomNoSlotValue);
     try {
       const thing = await getThingFromDynamoDB(
         parseInt(roomNoSlotValue),
@@ -326,7 +328,7 @@ function getDeviceShadowUpdateParams(
 async function getThingFromDynamoDB(roomNo, deviceType) {
   const dynamoDBParams = {
     TableName: "IOT_Devices",
-    KeyConditionExpression: "#roomNo = :value1 AND #deviceType = :value2",
+    FilterExpression: "#roomNo = :value1 AND #deviceType = :value2",
     ExpressionAttributeNames: {
       '#roomNo': 'roomNo',
       '#deviceType': 'deviceType',
@@ -337,7 +339,7 @@ async function getThingFromDynamoDB(roomNo, deviceType) {
     },
   };
 
-  const data = await dynamodb.query(dynamoDBParams).promise();
+  const data = await dynamodb.scan(dynamoDBParams).promise();
   console.log('Data Items',data.Items);
   return data.Items[0];
 }
