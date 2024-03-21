@@ -48,8 +48,9 @@ const ChangeACTemperatureIntentHandler = {
 
     console.log("desiredStateChange", desiredStateChange);
     console.log( "roomNoSlotValue", roomNoSlotValue);
+    let thing;
     try {
-      const thing = await getThingFromDynamoDB(
+      thing = await getThingFromDynamoDB(
         parseInt(roomNoSlotValue),
         deviceType
       );
@@ -280,7 +281,7 @@ async function updateDeviceShadowDesiredState(
     return "Shadow updated successfully";
   } catch (err) {
     console.log("Error updating shadow:", err);
-    return "Some error occurred!";
+    return "Some error occurred while updating shadow!";
   }
 }
 
