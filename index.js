@@ -104,11 +104,9 @@ const TurnLightBulbOnOffIntentHandler = {
     );
     const desiredStateChange = onOffStatus;
 
+    let thing;
     try {
-      const thing = await getThingFromDynamoDB(
-        parseInt(roomNoSlotValue),
-        deviceType
-      );
+      thing = await getThingFromDynamoDB(parseInt(roomNoSlotValue), deviceType);
       console.log("Thing", thing);
     } catch (error) {
       console.log("Error in getThingFromDynamoDB", error);
@@ -161,11 +159,9 @@ const ChangeFanSpeedIntentHandler = {
     );
     desiredStateChange = parseInt(fanSpeedSlotValue);
 
+    let thing;
     try {
-      const thing = await getThingFromDynamoDB(
-        parseInt(roomNoSlotValue),
-        deviceType
-      );
+      thing = await getThingFromDynamoDB(parseInt(roomNoSlotValue), deviceType);
       console.log("Thing", thing);
     } catch (error) {
       console.log("Error in getThingFromDynamoDB", error);
