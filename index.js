@@ -157,6 +157,7 @@ const ChangeFanSpeedIntentHandler = {
       handlerInput.requestEnvelope,
       "fanSpeed"
     );
+
     desiredStateChange = parseInt(fanSpeedSlotValue);
 
     let thing;
@@ -358,6 +359,17 @@ async function updateDynamoDBThing(deviceType, deviceId, desiredStateChange) {
         deviceId: deviceId,
       },
       UpdateExpression: "SET onOffStatus = :value",
+      ExpressionAttributeValues: {
+        ":value": desiredStateChange,
+      },
+    };
+  } else if(deviceType === "fan"){
+    dynamodbUpdateParams = {
+      TableName: "IOT_Devices",
+      Key: {
+        deviceId: deviceId,
+      },
+      UpdateExpression: "SET speed = :value",
       ExpressionAttributeValues: {
         ":value": desiredStateChange,
       },
