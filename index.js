@@ -1,6 +1,6 @@
 const AWS = require("aws-sdk");
 const Alexa = require("ask-sdk-core");
-import { SESClient, SendEmailCommand } from "@aws-sdk/client-ses";
+const { SESClient, SendEmailCommand } = require("@aws-sdk/client-ses");
 
 const iotData = new AWS.IotData({
   region: "us-east-1",
@@ -8,6 +8,7 @@ const iotData = new AWS.IotData({
 });
 
 const dynamodb = new AWS.DynamoDB.DocumentClient();
+const ses = new SESClient({ region: "us-east-1" });
 
 const LaunchRequestHandler = {
   canHandle(handlerInput) {
