@@ -251,7 +251,7 @@ const ReportDeviceFailureIntentHandler = {
     }
 
     return handlerInput.responseBuilder
-      .speak(response)
+      .speak('Device failure reported successfully')
       .reprompt()
       .getResponse();
   },
