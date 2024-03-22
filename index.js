@@ -1,5 +1,6 @@
 const AWS = require("aws-sdk");
 const Alexa = require("ask-sdk-core");
+import { SESClient, SendEmailCommand } from "@aws-sdk/client-ses";
 
 const iotData = new AWS.IotData({
   region: "us-east-1",
@@ -195,6 +196,66 @@ const ChangeFanSpeedIntentHandler = {
   },
 };
 
+const ReportDeviceFailureIntentHandler = {
+  canHandle(handlerInput) {
+    return (
+      Alexa.getRequestType(handlerInput.requestEnvelope) === "IntentRequest" &&
+      Alexa.getIntentName(handlerInput.requestEnvelope) ===
+        "reportDeviceFailure"
+    );
+  },
+  async handle(handlerInput) {
+    const roomNoSlotValue = Alexa.getSlotValue(
+      handlerInput.requestEnvelope,
+      "roomNo"
+    );
+
+    const deviceTypeSlotValue = Alexa.getSlotValue(
+      handlerInput.requestEnvelope,
+      "deviceType"
+    );
+
+    let deviceType;
+    if (
+      deviceTypeSlotValue === "AC" ||
+      deviceTypeSlotValue === "air conditioner"
+    ) {
+      deviceType = "air_conditioner";
+    } else if (deviceTypeSlotValue.includes("bulb")) {
+      deviceType = "light_bulb";
+    } else if (deviceTypeSlotValue.includes("fan")) {
+      deviceType = "fan";
+    }
+
+    let thing;
+    try {
+      thing = await getThingFromDynamoDB(parseInt(roomNoSlotValue), deviceType);
+      console.log("Thing", thing);
+    } catch (error) {
+      console.log("Error in getThingFromDynamoDB", error);
+      return handlerInput.responseBuilder
+        .speak("Some error occurred in finding thing in dynamoDB")
+        .reprompt()
+        .getResponse();
+    }
+
+    try {
+      await reportDeviceFailure(deviceTypeSlotValue, thing.deviceId, parseInt(roomNoSlotValue));
+    } catch (error) {
+      console.log("Error in reporting device failure", error);
+      return handlerInput.responseBuilder
+        .speak("Some error occurred while reporting device failure")
+        .reprompt()
+        .getResponse();
+    }
+
+    return handlerInput.responseBuilder
+      .speak(response)
+      .reprompt()
+      .getResponse();
+  },
+};
+
 const CancelAndStopIntentHandler = {
   canHandle(handlerInput) {
     return (
@@ -251,6 +312,7 @@ exports.updateDeviceStateHandler = Alexa.SkillBuilders.custom()
     ChangeACTemperatureIntentHandler,
     ChangeFanSpeedIntentHandler,
     TurnLightBulbOnOffIntentHandler,
+    ReportDeviceFailureIntentHandler,
     CancelAndStopIntentHandler,
     FallbackIntentHandler
   )
@@ -363,7 +425,7 @@ async function updateDynamoDBThing(deviceType, deviceId, desiredStateChange) {
         ":value": desiredStateChange,
       },
     };
-  } else if(deviceType === "fan"){
+  } else if (deviceType === "fan") {
     dynamodbUpdateParams = {
       TableName: "IOT_Devices",
       Key: {
@@ -377,4 +439,48 @@ async function updateDynamoDBThing(deviceType, deviceId, desiredStateChange) {
   }
 
   await dynamodb.update(dynamodbUpdateParams).promise();
+}
+
+async function reportDeviceFailure(deviceTypeSlotValue, deviceId, roomNo) {
+  const dynamodbUpdateParams = {
+    TableName: "IOT_Devices",
+    Key: {
+      deviceId: deviceId,
+    },
+    UpdateExpression: "SET workingCondition = :value",
+    ExpressionAttributeValues: {
+      ":value": false,
+    },
+  };
+
+  await dynamodb.update(dynamodbUpdateParams).promise();
+  await sendDeviceFailureEmail(deviceTypeSlotValue, roomNo);
+}
+
+async function sendDeviceFailureEmail(deviceTypeSlotValue, roomNo) {
+  const command = new SendEmailCommand({
+    Destination: {
+      ToAddresses: ["moinmulla10@gmail.com"],
+    },
+    Message: {
+      Body: {
+        Text: {
+          Data: `A ${deviceTypeSlotValue} has stopped working in room number ${roomNo}! Please look into it.`,
+        },
+      },
+
+      Subject: { Data: "Device failure emergency alert!" },
+    },
+    Source: "moin.mulla@happiestminds.com",
+  });
+
+  try {
+    let response = await ses.send(command);
+    // process data.
+    return response;
+  } catch (error) {
+    console.log(error);
+  } finally {
+    // finally.
+  }
 }
