@@ -15,7 +15,7 @@ const LaunchRequestHandler = {
     );
   },
   handle(handlerInput) {
-    const speakOutput = "Welcome from Moin from Happiest Minds";
+    const speakOutput = "Please tell me what device you want to control";
 
     return handlerInput.responseBuilder
       .speak(speakOutput)
@@ -47,13 +47,10 @@ const ChangeACTemperatureIntentHandler = {
     const desiredStateChange = parseInt(temperatureSlotValue);
 
     console.log("desiredStateChange", desiredStateChange);
-    console.log( "roomNoSlotValue", roomNoSlotValue);
+    console.log("roomNoSlotValue", roomNoSlotValue);
     let thing;
     try {
-      thing = await getThingFromDynamoDB(
-        parseInt(roomNoSlotValue),
-        deviceType
-      );
+      thing = await getThingFromDynamoDB(parseInt(roomNoSlotValue), deviceType);
       console.log("Thing", thing);
     } catch (error) {
       console.log("Error in getThingFromDynamoDB", error);
@@ -70,7 +67,7 @@ const ChangeACTemperatureIntentHandler = {
     );
 
     try {
-      await updateDynamoDBThing(thing.deviceId, desiredStateChange);
+      await updateDynamoDBThing(deviceType, thing.deviceId, desiredStateChange);
     } catch (error) {
       console.log("Error in updateThingInDynamoDB", error);
       return handlerInput.responseBuilder
@@ -128,7 +125,7 @@ const TurnLightBulbOnOffIntentHandler = {
     );
 
     try {
-      await updateDynamoDBThing(thing.deviceId, desiredStateChange);
+      await updateDynamoDBThing(deviceType, thing.deviceId, desiredStateChange);
     } catch (error) {
       console.log("Error in updateThingInDynamoDB", error);
       return handlerInput.responseBuilder
@@ -185,7 +182,7 @@ const ChangeFanSpeedIntentHandler = {
     );
 
     try {
-      await updateDynamoDBThing(thing.deviceId, desiredStateChange);
+      await updateDynamoDBThing(deviceType, thing.deviceId, desiredStateChange);
     } catch (error) {
       console.log("Error in updateThingInDynamoDB", error);
       return handlerInput.responseBuilder
@@ -312,13 +309,13 @@ function getDeviceShadowUpdateParams(
         },
       }),
     };
-  } else if (deviceType === "light") {
+  } else if (deviceType === "light_bulb") {
     return {
       thingName: thingName,
       payload: JSON.stringify({
         state: {
           desired: {
-            status: desiredStateChange,
+            onOffStatus: desiredStateChange,
           },
         },
       }),
@@ -331,8 +328,8 @@ async function getThingFromDynamoDB(roomNo, deviceType) {
     TableName: "IOT_Devices",
     FilterExpression: "#roomNo = :value1 AND #deviceType = :value2",
     ExpressionAttributeNames: {
-      '#roomNo': 'roomNo',
-      '#deviceType': 'deviceType',
+      "#roomNo": "roomNo",
+      "#deviceType": "deviceType",
     },
     ExpressionAttributeValues: {
       ":value1": roomNo,
@@ -341,20 +338,35 @@ async function getThingFromDynamoDB(roomNo, deviceType) {
   };
 
   const data = await dynamodb.scan(dynamoDBParams).promise();
-  console.log('Data Items',data.Items);
+  console.log("Data Items", data.Items);
   return data.Items[0];
 }
 
-async function updateDynamoDBThing(deviceId, temperature) {
-  const dynamodbUpdateParams = {
-    TableName: "IOT_Devices",
-    Key: {
-      deviceId: deviceId,
-    },
-    UpdateExpression: "SET temperature = :value",
-    ExpressionAttributeValues: {
-      ":value": temperature,
-    },
-  };
+async function updateDynamoDBThing(deviceType, deviceId, desiredStateChange) {
+  let dynamodbUpdateParams;
+  if (deviceType === "air_conditioner") {
+    dynamodbUpdateParams = {
+      TableName: "IOT_Devices",
+      Key: {
+        deviceId: deviceId,
+      },
+      UpdateExpression: "SET temperature = :value",
+      ExpressionAttributeValues: {
+        ":value": desiredStateChange,
+      },
+    };
+  } else if (deviceType === "light_bulb") {
+    dynamodbUpdateParams = {
+      TableName: "IOT_Devices",
+      Key: {
+        deviceId: deviceId,
+      },
+      UpdateExpression: "SET onOffStatus = :value",
+      ExpressionAttributeValues: {
+        ":value": desiredStateChange,
+      },
+    };
+  }
+
   await dynamodb.update(dynamodbUpdateParams).promise();
 }
