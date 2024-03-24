@@ -494,9 +494,9 @@ async function sendDeviceFailureEmail(deviceTypeSlotValue, roomNo) {
 async function publishToDeviceFailureTopic() {
   const deviceFailureTopicParams = {
     topic: "moin/deviceFailure",
-    payload: {
+    payload: JSON.stringify({
       message: "Hello from AWS.IotData!"
-    },
+    }),
     qos: 0,
   };
 
