@@ -241,7 +241,11 @@ const ReportDeviceFailureIntentHandler = {
     }
 
     try {
-      await reportDeviceFailure(deviceTypeSlotValue, thing.deviceId, parseInt(roomNoSlotValue));
+      await reportDeviceFailure(
+        deviceTypeSlotValue,
+        thing.deviceId,
+        parseInt(roomNoSlotValue)
+      );
     } catch (error) {
       console.log("Error in reporting device failure", error);
       return handlerInput.responseBuilder
@@ -251,7 +255,7 @@ const ReportDeviceFailureIntentHandler = {
     }
 
     return handlerInput.responseBuilder
-      .speak('Device failure reported successfully')
+      .speak("Device failure reported successfully")
       .reprompt()
       .getResponse();
   },
@@ -456,6 +460,7 @@ async function reportDeviceFailure(deviceTypeSlotValue, deviceId, roomNo) {
 
   await dynamodb.update(dynamodbUpdateParams).promise();
   await sendDeviceFailureEmail(deviceTypeSlotValue, roomNo);
+  await publishToDeviceFailureTopic();
 }
 
 async function sendDeviceFailureEmail(deviceTypeSlotValue, roomNo) {
@@ -484,4 +489,21 @@ async function sendDeviceFailureEmail(deviceTypeSlotValue, roomNo) {
   } finally {
     // finally.
   }
+}
+
+async function publishToDeviceFailureTopic() {
+  const deviceFailureTopicParams = {
+    topic: "moin/deviceFailure",
+    payload: "Hello from AWS.IotData!",
+    qos: 0,
+  };
+
+  // Publish message to the device-specific MQTT topic
+  iotData.publish(deviceFailureTopicParams, (err, data) => {
+    if (err) {
+      console.error("Error publishing message:", err);
+    } else {
+      console.log("Message published successfully:", data);
+    }
+  });
 }
