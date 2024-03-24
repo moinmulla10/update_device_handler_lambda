@@ -460,7 +460,7 @@ async function reportDeviceFailure(deviceTypeSlotValue, deviceId, roomNo) {
 
   await dynamodb.update(dynamodbUpdateParams).promise();
   await sendDeviceFailureEmail(deviceTypeSlotValue, roomNo);
-  await publishToDeviceFailureTopic();
+  await publishToDeviceFailureTopic(deviceTypeSlotValue, roomNo);
 }
 
 async function sendDeviceFailureEmail(deviceTypeSlotValue, roomNo) {
@@ -491,11 +491,11 @@ async function sendDeviceFailureEmail(deviceTypeSlotValue, roomNo) {
   }
 }
 
-async function publishToDeviceFailureTopic() {
+async function publishToDeviceFailureTopic(deviceTypeSlotValue, roomNo) {
   const deviceFailureTopicParams = {
     topic: "moin/deviceFailure",
     payload: JSON.stringify({
-      message: "Hello from AWS.IotData!"
+      message: `A ${deviceTypeSlotValue} has stopped working in room number ${roomNo}! Please look into it.`
     }),
     qos: 0,
   };
