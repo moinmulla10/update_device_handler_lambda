@@ -430,6 +430,7 @@ async function updateDynamoDBThing(roomNo,deviceType, desiredStateChange) {
   }
 
   const dynamoDBResponse = await dynamodb.update(dynamodbUpdateParams).promise();
+  console.log('DynamoDB update response',dynamoDBResponse);
   return dynamoDBResponse.Attributes.thingName;
 }
 
