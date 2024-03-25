@@ -95,26 +95,14 @@ const TurnLightBulbOnOffIntentHandler = {
     );
     const desiredStateChange = onOffStatus;
 
-    let thing;
+    let response;
     try {
-      thing = await getThingFromDynamoDB(parseInt(roomNoSlotValue), deviceType);
-      console.log("Thing", thing);
-    } catch (error) {
-      console.log("Error in getThingFromDynamoDB", error);
-      return handlerInput.responseBuilder
-        .speak("Some error occurred in finding thing in dynamoDB")
-        .reprompt()
-        .getResponse();
-    }
-
-    const response = await updateDeviceShadowDesiredState(
-      thing.thingName,
+     const thingName = await updateDynamoDBThing(parseInt(roomNoSlotValue), deviceType, desiredStateChange);
+     response = await updateDeviceShadowDesiredState(
+      thingName,
       deviceType,
       desiredStateChange
     );
-
-    try {
-      await updateDynamoDBThing(parseInt(roomNoSlotValue), deviceType, desiredStateChange);
     } catch (error) {
       console.log("Error in updateThingInDynamoDB", error);
       return handlerInput.responseBuilder
@@ -151,26 +139,14 @@ const ChangeFanSpeedIntentHandler = {
 
     desiredStateChange = parseInt(fanSpeedSlotValue);
 
-    let thing;
+    let response;
     try {
-      thing = await getThingFromDynamoDB(parseInt(roomNoSlotValue), deviceType);
-      console.log("Thing", thing);
-    } catch (error) {
-      console.log("Error in getThingFromDynamoDB", error);
-      return handlerInput.responseBuilder
-        .speak("Some error occurred in finding thing in dynamoDB")
-        .reprompt()
-        .getResponse();
-    }
-
-    const response = await updateDeviceShadowDesiredState(
-      thing.thingName,
-      deviceType,
-      desiredStateChange
-    );
-
-    try {
-      await updateDynamoDBThing(parseInt(roomNoSlotValue),deviceType, desiredStateChange);
+      const thingName = await updateDynamoDBThing(parseInt(roomNoSlotValue),deviceType, desiredStateChange);
+      response = await updateDeviceShadowDesiredState(
+        thingName,
+        deviceType,
+        desiredStateChange
+      );
     } catch (error) {
       console.log("Error in updateThingInDynamoDB", error);
       return handlerInput.responseBuilder
