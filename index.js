@@ -396,7 +396,7 @@ async function updateDynamoDBThing(roomNo,deviceType, desiredStateChange) {
       ExpressionAttributeValues: {
         ":value": desiredStateChange,
       },
-      ReturnValues: 'UPDATED_NEW',
+      ReturnValues: 'ALL_NEW',
       ProjectionExpression: 'thingName'
     };
   } else if (deviceType === "light_bulb") {
@@ -410,7 +410,7 @@ async function updateDynamoDBThing(roomNo,deviceType, desiredStateChange) {
       ExpressionAttributeValues: {
         ":value": desiredStateChange,
       },
-      ReturnValues: 'UPDATED_NEW',
+      ReturnValues: 'ALL_NEW',
       ProjectionExpression: 'thingName'
     };
   } else if (deviceType === "fan") {
