@@ -50,26 +50,15 @@ const ChangeACTemperatureIntentHandler = {
 
     console.log("desiredStateChange", desiredStateChange);
     console.log("roomNoSlotValue", roomNoSlotValue);
-    let thing;
-    try {
-      thing = await getThingFromDynamoDB(parseInt(roomNoSlotValue), deviceType);
-      console.log("Thing", thing);
-    } catch (error) {
-      console.log("Error in getThingFromDynamoDB", error);
-      return handlerInput.responseBuilder
-        .speak("Some error occurred in finding thing in dynamoDB")
-        .reprompt()
-        .getResponse();
-    }
-
-    const response = await updateDeviceShadowDesiredState(
-      thing.thingName,
-      deviceType,
-      desiredStateChange
-    );
 
     try {
-      await updateDynamoDBThing(deviceType, thing.deviceId, desiredStateChange);
+      const thingName = await updateDynamoDBThing(parseInt(roomNoSlotValue),deviceType, desiredStateChange);
+      console.log('Thingname returned by updateDynamoDBThing', thingName);
+      response = await updateDeviceShadowDesiredState(
+        thingName,
+        deviceType,
+        desiredStateChange
+      );
     } catch (error) {
       console.log("Error in updateThingInDynamoDB", error);
       return handlerInput.responseBuilder
@@ -125,7 +114,7 @@ const TurnLightBulbOnOffIntentHandler = {
     );
 
     try {
-      await updateDynamoDBThing(deviceType, thing.deviceId, desiredStateChange);
+      await updateDynamoDBThing(parseInt(roomNoSlotValue), deviceType, desiredStateChange);
     } catch (error) {
       console.log("Error in updateThingInDynamoDB", error);
       return handlerInput.responseBuilder
@@ -181,7 +170,7 @@ const ChangeFanSpeedIntentHandler = {
     );
 
     try {
-      await updateDynamoDBThing(deviceType, thing.deviceId, desiredStateChange);
+      await updateDynamoDBThing(parseInt(roomNoSlotValue),deviceType, desiredStateChange);
     } catch (error) {
       console.log("Error in updateThingInDynamoDB", error);
       return handlerInput.responseBuilder
@@ -228,23 +217,11 @@ const ReportDeviceFailureIntentHandler = {
       deviceType = "fan";
     }
 
-    let thing;
-    try {
-      thing = await getThingFromDynamoDB(parseInt(roomNoSlotValue), deviceType);
-      console.log("Thing", thing);
-    } catch (error) {
-      console.log("Error in getThingFromDynamoDB", error);
-      return handlerInput.responseBuilder
-        .speak("Some error occurred in finding thing in dynamoDB")
-        .reprompt()
-        .getResponse();
-    }
-
     try {
       await reportDeviceFailure(
         deviceTypeSlotValue,
-        thing.deviceId,
-        parseInt(roomNoSlotValue)
+        parseInt(roomNoSlotValue),
+        deviceType
       );
     } catch (error) {
       console.log("Error in reporting device failure", error);
@@ -406,51 +383,62 @@ async function getThingFromDynamoDB(roomNo, deviceType) {
   return data.Items[0];
 }
 
-async function updateDynamoDBThing(deviceType, deviceId, desiredStateChange) {
+async function updateDynamoDBThing(roomNo,deviceType, desiredStateChange) {
   let dynamodbUpdateParams;
   if (deviceType === "air_conditioner") {
     dynamodbUpdateParams = {
       TableName: "IOT_Devices",
       Key: {
-        deviceId: deviceId,
+        roomNo: roomNo,
+        deviceType: deviceType
       },
       UpdateExpression: "SET temperature = :value",
       ExpressionAttributeValues: {
         ":value": desiredStateChange,
       },
+      ReturnValues: 'UPDATED_NEW',
+      ProjectionExpression: 'thingName'
     };
   } else if (deviceType === "light_bulb") {
     dynamodbUpdateParams = {
       TableName: "IOT_Devices",
       Key: {
-        deviceId: deviceId,
+        roomNo: roomNo,
+        deviceType: deviceType
       },
       UpdateExpression: "SET onOffStatus = :value",
       ExpressionAttributeValues: {
         ":value": desiredStateChange,
       },
+      ReturnValues: 'UPDATED_NEW',
+      ProjectionExpression: 'thingName'
     };
   } else if (deviceType === "fan") {
     dynamodbUpdateParams = {
       TableName: "IOT_Devices",
       Key: {
-        deviceId: deviceId,
+        roomNo: roomNo,
+        deviceType: deviceType
       },
       UpdateExpression: "SET speed = :value",
       ExpressionAttributeValues: {
         ":value": desiredStateChange,
       },
+      ReturnValues: 'UPDATED_NEW',
+      ProjectionExpression: 'thingName'
     };
   }
 
-  await dynamodb.update(dynamodbUpdateParams).promise();
+  const dynamoDBResponse = await dynamodb.update(dynamodbUpdateParams).promise();
+  return dynamoDBResponse.Attributes.thingName;
 }
 
-async function reportDeviceFailure(deviceTypeSlotValue, deviceId, roomNo) {
+async function reportDeviceFailure(deviceTypeSlotValue, roomNo, deviceType) {
   const dynamodbUpdateParams = {
     TableName: "IOT_Devices",
     Key: {
-      deviceId: deviceId,
+      roomNo: roomNo,
+      deviceType: deviceType
     },
     UpdateExpression: "SET workingCondition = :value",
     ExpressionAttributeValues: {
